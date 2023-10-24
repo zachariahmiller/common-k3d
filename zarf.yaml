@@ -20,22 +20,25 @@ components:
               curl -fL https://github.com/defenseunicorns/uds-cli/releases/download/###ZARF_PKG_TMPL_UDS_CLI_VERSION###/uds-cli_###ZARF_PKG_TMPL_UDS_CLI_VERSION###_$(uname -s)_${ARCH} -o build/uds
               chmod +x build/uds
 
-          # - description: Build the pepr module
-          #   cmd: |
-          #     npm ci
-          #     npx pepr build
-          #   dir: ../../uds-pepr-istio
+          - description: Build the pepr istio module
+            cmd: |
+              npm ci
+              npx pepr build
+            dir: istio/pepr
 
           - description: Build the zarf packages
             cmd: |
               ./zarf p c k3d --confirm -o build
               ./zarf p c metallb --confirm -o build
-              ./zarf p c ../../ --confirm -o build #pull uds-capability-istio
-
+              ./zarf p c istio --confirm -o build #pull uds-capability-istio
+              ./zarf p c k3d --confirm -o build -a amd64
+              ./zarf p c metallb --confirm -o build -a amd64
+              ./zarf p c istio --confirm -o build -a amd64 #pull uds-capability-istio
 
           - description: Build the test bundle
             cmd: |
               ./build/uds create --confirm
+              ./build/uds create --confirm -a amd64
               mv uds-bundle-* build/
 
   - name: deploy
@@ -46,20 +49,17 @@ components:
           - description: Deploy the cluster bundle
             cmd: |
                 ARCH=$(uname -m)
-                echo $ARCH
                 [ "$ARCH" = "x86_64" ] && ARCH="amd64"
-                echo $ARCH
-                ./uds deploy uds-bundle-k3d-common-bundle-$ARCH-0.1.0.tar.zst --confirm
+                ./uds deploy uds-bundle-k3d-common-$ARCH-0.1.0.tar.zst --confirm
             dir: build
 
-          # - description: Deploy the istio
-          #   cmd: |
-          #       ARCH=$(uname -m)
-          #       echo $ARCH
-          #       [ "$ARCH" = "x86_64" ] && ARCH="amd64"
-          #       [ "$ARCH" = "arm64" ] && COMPONENTS='--components="istio-controlplane-dev"'
-          #       echo $ARCH
-          #       ./zarf p d build/zarf-package-uds-capabilities-istio-$ARCH-1.19.3.tar.zst --confirm #${COMPONENTS}          
+          - description: Deploy the istio
+            cmd: |
+                ARCH=$(uname -m)
+                [ "$ARCH" = "x86_64" ] && ARCH="amd64"
+                [ "$ARCH" = "arm64" ] && COMPONENTS='--components="istio-controlplane-dev"'
+                ./zarf p d build/zarf-package-uds-capabilities-istio-$ARCH-1.19.3.tar.zst --confirm #${COMPONENTS}          
+
 
   - name: test
     required: true
@@ -68,7 +68,7 @@ components:
         before:
           - description: Deploy the test app
             cmd: |
-              ./zarf tools kubectl apply -f ./test-app/app.yaml
+              ./zarf tools kubectl apply -f ./test/app.yaml
         after:
           - description: Wait for test app to be accessible
             wait:
@@ -76,4 +76,38 @@ components:
                 protocol: https
                 address: demo.uds.dev
 
+  - name: publish
+    required: true
+    actions:
+      onCreate:
+        before:
+          - description: Authenticate to ghcr 
+            cmd: echo $GH_TOKEN | zarf tools registry login ghcr.io -u $GH_USERNAME --password-stdin
+          - description: publish the bundle 
+            cmd: |
+               ARCH=$(uname -m)
+               [ "$ARCH" = "x86_64" ] && ARCH="amd64"
+               ./uds publish uds-bundle-k3d-common-$ARCH-0.1.0.tar.zst oci://ghcr.io/zachariahmiller
+               #./uds publish uds-bundle-k3d-common-amd64-0.1.0.tar.zst oci://ghcr.io/zachariahmiller
+            dir: build
 
+
+  - name: build-istio
+    required: true
+    actions:
+      onCreate:
+        before:
+          - description: Build the test bundle
+            cmd: |
+              ./../build/uds create --confirm
+              ./../build/uds create --confirm -a amd64
+              mv uds-bundle-* ./../build/
+            dir: k3d-common-istio
+
+          - description: publish the bundle 
+            cmd: |
+               ARCH=$(uname -m)
+               [ "$ARCH" = "x86_64" ] && ARCH="amd64"
+               ./uds publish uds-bundle-k3d-common-istio-$ARCH-0.1.0.tar.zst oci://ghcr.io/zachariahmiller
+               #./uds publish uds-bundle-k3d-common-istio-amd64-0.1.0.tar.zst oci://ghcr.io/zachariahmiller
+            dir: build

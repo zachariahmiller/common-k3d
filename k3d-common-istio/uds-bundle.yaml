@@ -1,0 +1,27 @@
+kind: UDSBundle
+metadata:
+  name: k3d-common-istio
+  description: A uds bundle for common k3d testbed. 
+  version: 0.1.0
+
+zarf-packages:
+  # Cluster setup
+  - name: uds-k3d-dev
+    path: ../build
+    ref: 0.1.0
+    optional-components:
+      - "destroy-cluster"
+
+  # Zarf init required for neuvector currently not working in yolo mode
+  - name: init
+    repository: ghcr.io/defenseunicorns/packages/init
+    ref: v0.29.1
+
+  - name: uds-metallb-dev
+    path: ../build
+    ref: 0.1.0
+
+  - name: uds-capabilities-istio
+    path: ../build
+    repository:  #ghcr.io/zachariahmiller/k3d-common
+    ref: 1.19.3
