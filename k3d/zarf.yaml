@@ -1,0 +1,55 @@
+kind: ZarfPackageConfig
+metadata:
+  name: uds-k3d-dev
+  description: UDS K3d Cluster Setup
+  version: 0.1.0
+
+variables:
+  - name: CLUSTER_NAME
+    description: "Name of the cluster"
+    default: "uds"
+
+  - name: K3D_IMAGE
+    description: "K3d image to use"
+    default: "rancher/k3s:v1.27.4-k3s1"
+
+components:
+  - name: destroy-cluster
+    description: "Optionally destroy the cluster before creating it"
+    actions:
+      onDeploy:
+        before:
+          - cmd: k3d cluster delete ${ZARF_VAR_CLUSTER_NAME}
+            description: "Destroy the cluster"
+
+  - name: create-cluster
+    required: true
+    description: "Create the k3d cluster"
+    actions:
+      onDeploy:
+        before:
+          - cmd: echo "B0D07F1F43F246409516ADBDCCC86FCE" > tmp-machine-id
+            description: "Create a machine-id file for the nodes"
+          - cmd: |
+              k3d cluster create \
+              -p "80:20080@server:*" \
+              -p "443:20443@server:*" \
+              --api-port 6550 \
+              --k3s-arg "--disable=traefik@server:*" \
+              --k3s-arg "--disable=metrics-server@server:*" \
+              --k3s-arg "--disable=servicelb@server:*" \
+              --image ${ZARF_VAR_K3D_IMAGE} \
+              --volume $(pwd)/tmp-machine-id:/etc/machine-id@server:* \
+              ${ZARF_VAR_CLUSTER_NAME}              
+            description: "Create the cluster"  
+        after:
+          - cmd: rm -f tmp-machine-id
+        onSuccess:
+          - cmd: |
+              echo "You can access this cluster over SSH (note http redirect will redirect to port 80 instead of 8080):"
+              echo "ssh -N -L 8080:localhost:80 -L 8443:localhost:443 -L 6550:localhost:6550 user@remotehost -i <identity_file>"
+              echo
+              echo "To get the kubeconfig:"
+              echo "k3d kubeconfig get ${ZARF_VAR_CLUSTER_NAME}"
+              echo "export KUBECONFIG=~/.kube/k3d-remote-config; scp -i <identity_file> ubuntu@remotehost:~/.kube/config ${KUBECONFIG}"
+            description: "Print out information about how to access the cluster remotely"

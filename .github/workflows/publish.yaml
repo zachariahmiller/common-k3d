@@ -1,0 +1,32 @@
+name: build-and-publish
+
+on:
+  push:
+    tags: [ "*" ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+defaults:
+  run:
+    # We need -e -o pipefail for consistency with GitHub Actions' default behavior
+    shell: bash -e -o pipefail {0}
+
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest] #windows-latest?
+    uses: ./.github/workflows/build-and-test.yaml
+    with:
+      platform: ${{ matrix.os }}
+    secrets: inherit
+  publish-package:
+    uses: ./.github/workflows/publish-capability.yaml
+    with:
+      working_dir: '.github/test-infra'
+      secrets: inherit

@@ -20,17 +20,17 @@ components:
               curl -fL https://github.com/defenseunicorns/uds-cli/releases/download/###ZARF_PKG_TMPL_UDS_CLI_VERSION###/uds-cli_###ZARF_PKG_TMPL_UDS_CLI_VERSION###_$(uname -s)_${ARCH} -o build/uds
               chmod +x build/uds
 
-          # - description: Build the pepr module
-          #   cmd: |
-          #     npm ci
-          #     npx pepr build
-          #   dir: ../../uds-pepr-istio
+          - description: Build the pepr module
+            cmd: |
+              npm ci
+              npx pepr build
+            dir: ../../uds-pepr-istio
 
           - description: Build the zarf packages
             cmd: |
               ./zarf p c k3d --confirm -o build
               ./zarf p c metallb --confirm -o build
-              ./zarf p c ../../ --confirm -o build #pull uds-capability-istio
+              ./zarf p c ../../ --confirm -o build
 
 
           - description: Build the test bundle
@@ -49,17 +49,17 @@ components:
                 echo $ARCH
                 [ "$ARCH" = "x86_64" ] && ARCH="amd64"
                 echo $ARCH
-                ./uds deploy uds-bundle-k3d-common-bundle-$ARCH-0.1.0.tar.zst --confirm
+                ./uds deploy uds-bundle-istio-test-bundle-$ARCH-0.1.0.tar.zst --confirm
             dir: build
 
-          # - description: Deploy the istio
-          #   cmd: |
-          #       ARCH=$(uname -m)
-          #       echo $ARCH
-          #       [ "$ARCH" = "x86_64" ] && ARCH="amd64"
-          #       [ "$ARCH" = "arm64" ] && COMPONENTS='--components="istio-controlplane-dev"'
-          #       echo $ARCH
-          #       ./zarf p d build/zarf-package-uds-capabilities-istio-$ARCH-1.19.3.tar.zst --confirm #${COMPONENTS}          
+          - description: Deploy the istio
+            cmd: |
+                ARCH=$(uname -m)
+                echo $ARCH
+                [ "$ARCH" = "x86_64" ] && ARCH="amd64"
+                [ "$ARCH" = "arm64" ] && COMPONENTS='--components="istio-controlplane-dev"'
+                echo $ARCH
+                ./zarf p d build/zarf-package-uds-capabilities-istio-$ARCH-1.19.3.tar.zst --confirm #${COMPONENTS}          
 
   - name: test
     required: true

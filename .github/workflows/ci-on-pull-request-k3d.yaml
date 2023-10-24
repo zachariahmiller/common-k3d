@@ -1,0 +1,26 @@
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - ".gitignore"
+      - "LICENSE"
+      - "**/*.md"
+      - "**/*.json"
+      - "**/*.png"
+      - "**/*.svg"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest-large, macos-latest, macos-13-latest] #Apparently only the large mac runners are M1 chips: macos-latest-large. windows-latest is failing and was removed
+    uses: ./.github/workflows/build-and-test.yaml
+    with:
+      platform: ${{ matrix.os }}
+    secrets: inherit
+
