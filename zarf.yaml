@@ -24,21 +24,21 @@ components:
             cmd: |
               npm ci
               npx pepr build
-            dir: istio/pepr
+            dir: istio-faux-skeleton/pepr
 
           - description: Build the zarf packages
             cmd: |
-              ./zarf p c k3d --confirm -o build
-              ./zarf p c metallb --confirm -o build
-              ./zarf p c istio --confirm -o build #pull uds-capability-istio
-              ./zarf p c k3d --confirm -o build -a amd64
-              ./zarf p c metallb --confirm -o build -a amd64
-              ./zarf p c istio --confirm -o build -a amd64 #pull uds-capability-istio
+              # ./zarf p c k3d --confirm --no-progress -o build
+              # ./zarf p c metallb --confirm --no-progress -o build
+              ./zarf p c istio --confirm --no-progress -o build #pull uds-capability-istio
+              # ./zarf p c k3d --confirm --no-progress -o build -a amd64
+              # ./zarf p c metallb --confirm --no-progress -o build -a amd64
+              ./zarf p c istio --confirm --no-progress -o build -a amd64 #pull uds-capability-istio
 
           - description: Build the test bundle
             cmd: |
-              ./build/uds create --confirm
-              ./build/uds create --confirm -a amd64
+              ./build/uds create --no-progress --confirm
+              ./build/uds create --no-progress --confirm -a amd64
               mv uds-bundle-* build/
 
   - name: deploy
@@ -50,7 +50,7 @@ components:
             cmd: |
                 ARCH=$(uname -m)
                 [ "$ARCH" = "x86_64" ] && ARCH="amd64"
-                ./uds deploy uds-bundle-k3d-common-$ARCH-0.1.0.tar.zst --confirm
+                ./uds deploy uds-bundle-k3d-common-$ARCH-0.1.0.tar.zst --confirm --no-progress
             dir: build
 
           - description: Deploy the istio
@@ -58,7 +58,7 @@ components:
                 ARCH=$(uname -m)
                 [ "$ARCH" = "x86_64" ] && ARCH="amd64"
                 [ "$ARCH" = "arm64" ] && COMPONENTS='--components="istio-controlplane-dev"'
-                ./zarf p d build/zarf-package-uds-capabilities-istio-$ARCH-1.19.3.tar.zst --confirm #${COMPONENTS}          
+                ./zarf p d build/zarf-package-uds-capability-istio-$ARCH-1.19.3.tar.zst --no-progress --confirm #${COMPONENTS}          
 
 
   - name: test
@@ -99,8 +99,8 @@ components:
         before:
           - description: Build the test bundle
             cmd: |
-              ./../build/uds create --confirm
-              ./../build/uds create --confirm -a amd64
+              ./../build/uds create --confirm --no-progress
+              ./../build/uds create --confirm -a amd64 --no-progress
               mv uds-bundle-* ./../build/
             dir: k3d-common-istio
 
@@ -108,6 +108,6 @@ components:
             cmd: |
                ARCH=$(uname -m)
                [ "$ARCH" = "x86_64" ] && ARCH="amd64"
-               ./uds publish uds-bundle-k3d-common-istio-$ARCH-0.1.0.tar.zst oci://ghcr.io/zachariahmiller
+               #./uds publish uds-bundle-k3d-common-istio-$ARCH-0.1.0.tar.zst oci://ghcr.io/zachariahmiller
                #./uds publish uds-bundle-k3d-common-istio-amd64-0.1.0.tar.zst oci://ghcr.io/zachariahmiller
             dir: build
