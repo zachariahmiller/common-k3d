@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/defenseunicorns/zarf/main/zarf.schema.json
+
+kind: ZarfPackageConfig
+metadata:
+  name: uds-capability-istio
+  description: "UDS Istio Capability CI"
+  url: https://istio.io/latest/
+  # x-release-please-start-version
+  version: 1.19.3
+  # x-release-please-end
+
+components:
+  - name: istio-controlplane
+    required: true
+    import:
+      path: ../istio-faux-skeleton
+
+
+  - name: istio-admin-gateway
+    required: true
+    import:
+      path: ../istio-faux-skeleton
+    charts:
+      - name: uds-istio-config
+        valuesFiles:
+          - "../values/config-admin.yaml"
+
+  - name: istio-tenant-gateway
+    required: true
+    import:
+      path: ../istio-faux-skeleton
+    description: "Deploy a tenant gateway"
+    charts:
+      - name: uds-istio-config
+        valuesFiles:
+          - "../values/config-tenant.yaml"
+
+  - name: istio-passthrough-gateway
+    required: true
+    import:
+      path: ../istio-faux-skeleton
+
+  - name: module
+    description: "Deploy the uds-istio pepr module"
+    required: true
+    import:
+      path: ../istio-faux-skeleton
